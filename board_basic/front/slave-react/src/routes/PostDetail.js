@@ -8,6 +8,9 @@ function PostDetail() {
     const [post, setPost] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedTitle, setEditedTitle] = useState("");
+    const [editedContent, setEditedContent] = useState("");
 
     useEffect(() => {
         fetch(`http://localhost:8080/boards/${id}`)
@@ -17,6 +20,8 @@ function PostDetail() {
             })
             .then((data) => {
                 setPost(data);
+                setEditedTitle(data.title);
+                setEditedContent(data.content);
                 setLoading(false);
             })
             .catch((err) => {
@@ -42,16 +47,81 @@ function PostDetail() {
             });
     };
 
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+
+    const handleSave = () => {
+        const updatedPost = {
+            ...post,
+            title: editedTitle,
+            content: editedContent,
+        };
+
+        fetch(`http://localhost:8080/boards/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updatedPost),
+        })
+            .then((resp) => {
+                if (!resp.ok) throw new Error("게시글 수정에 실패했습니다.");
+                alert("게시글이 성공적으로 수정되었습니다.");
+                setPost(updatedPost);
+                setIsEditing(false);
+            })
+            .catch((err) => {
+                console.error(err);
+                alert("게시글 수정 중 오류가 발생했습니다.");
+            });
+    };
+
     if (loading) return <p>Loading...</p>;
     if (error) return <p>{error}</p>;
 
     return (
         <div className="detail-container">
-            <h1 className="detail-title">{post.title}</h1>
-            <p className="detail-info">작성자: {post.writer}</p>
-            <p className="detail-info">작성일: {new Date(post.createdDate).toLocaleString()}</p>
-            <div className="detail-content">{post.content}</div>
-            <button className="delete-button" onClick={handleDelete}>삭제</button>
+            {isEditing ? (
+                <div>
+                    <input
+                        className="edit-input"
+                        type="text"
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                    />
+                    <textarea
+                        className="edit-textarea"
+                        value={editedContent}
+                        onChange={(e) => setEditedContent(e.target.value)}
+                    />
+                    <button className="save-button" onClick={handleSave}>
+                        저장
+                    </button>
+                    <button className="cancel-button" onClick={() => setIsEditing(false)}>
+                        취소
+                    </button>
+                </div>
+            ) : (
+                <div>
+                    <h1 className="detail-title">{post.title}</h1>
+                    <p className="detail-info">작성자: {post.writer}</p>
+                    <p className="detail-info">작성일: {new Date(post.createdDate).toLocaleString()}</p>
+                    <div className="detail-content">{post.content}</div>
+                    <div className="button-container">
+                        <button className="edit-button" onClick={handleEdit}>
+                            수정
+                        </button>
+                        <button className="delete-button" onClick={handleDelete}>
+                            삭제
+                        </button>
+                        <button
+                            className="return-button"
+                            onClick={() => navigate("/list")}
+                        >
+                            돌아가기
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
